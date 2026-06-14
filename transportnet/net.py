@@ -411,31 +411,39 @@ class Net:
             for ln in self.lines:
                 ln.run()
             self.time += time_step
-        # printing out simulation results
-        self.total_wait_time = 0
-        self.num_serviced_passengers = 0
-        self.sum_vehicles_time = 0
-        for ln in self.lines:
-            for v in ln.vehicles:
-                self.sum_vehicles_time += v.schedule[-1][0] - v.schedule[0][0]
-                # show servicing process
-                # for s in v.schedule:
-                #     print "at {0} in {1} :: gamma={2}".format(s[0], s[1].code, float(len(v.servicing[s]))/v.capacity)
-                #     for pas in v.servicing[s]:
-                #         print pas.origin_node.code, "-", pas.destination_node.code,  "(", pas.m_appearance, ") :",
-                #     print
-                # print
-        # estimate total wait time (under condition that unserviced passengers wait till the end of simulation)
-        unserviced_passengers_number = 0
-        for ps in self.demand:
-            if len(ps.used_vehicles) > 0:
-                self.num_serviced_passengers += 1
-                self.total_wait_time += ps.wait_time
-            else:
-                unserviced_passengers_number += 1
-                self.total_wait_time += self.duration - ps.m_appearance
-        return self.total_wait_time, len(self.demand), self.num_serviced_passengers, unserviced_passengers_number, ((self.total_wait_time/self.num_serviced_passengers)/60)
+            
+        MAX_COOLDOWN = 60                 
+        cooldown_start_time = self.time
+        while any(len(ps.used_vehicles) == 0 for ps in self.demand) \
+                and self.time - cooldown_start_time <= MAX_COOLDOWN:
+            for ln in self.lines:
+                ln.run()
+            self.time += time_step
 
+    # printing out simulation results
+    self.total_wait_time = 0
+    self.num_serviced_passengers = 0
+    self.sum_vehicles_time = 0
+    for ln in self.lines:
+        for v in ln.vehicles:
+            self.sum_vehicles_time += v.schedule[-1][0] - v.schedule[0][0]
+            # show servicing process
+            # for s in v.schedule:
+            #     print "at {0} in {1} :: gamma={2}".format(s[0], s[1].code, float(len(v.servicing[s]))/v.capacity)
+            #     for pas in v.servicing[s]:
+            #         print pas.origin_node.code, "-", pas.destination_node.code,  "(", pas.m_appearance, ") :",
+            #     print
+            # print
+    # estimate total wait time (under condition that unserviced passengers wait till the end of simulation)
+    unserviced_passengers_number = 0
+    for ps in self.demand:
+        if len(ps.used_vehicles) > 0:
+            self.num_serviced_passengers += 1
+            self.total_wait_time += ps.wait_time
+        else:
+            unserviced_passengers_number += 1
+            self.total_wait_time += self.duration - ps.m_appearance
+    return self.total_wait_time, len(self.demand), self.num_serviced_passengers, unserviced_passengers_number, ((self.total_wait_time/self.num_serviced_passengers)/60)
     def reset(self):
         # reset resulting parameters of simulations
         for psg in self.demand:
